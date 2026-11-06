@@ -3,7 +3,7 @@
 כלי קטן ל-MapleStory למי שמוכר בשוק: מקליד בצ'אט שתי הודעות לסירוגין, כל כמה שניות, כאילו הקלדת אותן במקלדת.
 
 ## הורדה
-את הקובץ `MapleMessenger.exe` מורידים מ-[Releases](../../releases/latest), ומפעילים אותו. לא צריך להתקין כלום.
+לוחצים על הקובץ [`MapleMessenger.exe`](MapleMessenger.exe) ברשימת הקבצים למעלה, ואז על כפתור ההורדה (Download raw file). מפעילים אותו בלחיצה כפולה, ולא צריך להתקין כלום.
 
 בהפעלה הראשונה Windows עלול להציג "Windows protected your PC", כי הקובץ לא חתום. לוחצים **More info** ואז **Run anyway**.
 
