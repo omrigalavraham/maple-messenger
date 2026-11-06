@@ -10,6 +10,7 @@
     <RootNamespace>MapleMessenger</RootNamespace>
     <Version>1.0.0</Version>
     <Product>Maple Messenger</Product>
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

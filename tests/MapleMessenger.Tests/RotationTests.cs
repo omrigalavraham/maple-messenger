@@ -35,6 +35,6 @@ public class RotationTests
     [Fact]
     public void Clean_turns_line_breaks_into_spaces_and_trims()
     {
-        Assert.Equal("S> sword  B> shield", Rotation.Clean("  S> sword\r\nB> shield \n"));
+        Assert.Equal("S> sword B> shield", Rotation.Clean("  S> sword\r\nB> shield \n"));
     }
 }

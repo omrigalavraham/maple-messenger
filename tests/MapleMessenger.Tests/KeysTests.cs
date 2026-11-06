@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+using MapleMessenger.Core;
 using MapleMessenger.Native;
 
 namespace MapleMessenger.Tests;
