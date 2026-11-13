@@ -5,7 +5,7 @@ namespace MapleMessenger.Native;
 internal static class Typer
 {
     /// <summary>How long a key stays down, and the pause after it comes up. Games read keys per frame, so not too fast.</summary>
-    public const int HoldMs = 18, GapMs = 24;
+    public const int HoldMs = 12, GapMs = 14;
 
     /// <summary>Presses the keys one by one. Stops the moment <paramref name="stillOk"/> fails (the game lost focus)
     /// or on cancel, and never leaves a key held down.</summary>

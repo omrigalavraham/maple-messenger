@@ -8,9 +8,10 @@ internal enum Phase { Off, NoText, WaitingForGame, NeedsAdmin, WrongLanguage, Ty
 internal static class Gate
 {
     /// <summary>What stops the next message right now, or null when it can be typed.</summary>
-    public static Phase? Blocker(bool hasText, bool gameInFront, bool gameAdmin, bool weAdmin) =>
+    /// <param name="gameFound">The game is in front, or (when typing in the background) open at all.</param>
+    public static Phase? Blocker(bool hasText, bool gameFound, bool gameAdmin, bool weAdmin) =>
         !hasText ? Phase.NoText
-        : !gameInFront ? Phase.WaitingForGame
+        : !gameFound ? Phase.WaitingForGame
         : gameAdmin && !weAdmin ? Phase.NeedsAdmin
         : null;
 }
@@ -70,7 +71,7 @@ internal sealed class Messenger(Func<Settings> settings)
                 if (slot < 0 || Rotation.Clean(s.Messages[slot]).Length == 0) slot = Rotation.Next(s.Messages, slot);
                 Slot = slot;
 
-                var game = Game.Foreground();
+                var game = s.Background ? Game.Find() : Game.Foreground();
                 if (Gate.Blocker(slot >= 0, game is not null, game?.RunsAsAdmin == true, Environment.IsPrivilegedProcess) is { } block)
                 {
                     settle = true;
@@ -79,6 +80,19 @@ internal sealed class Messenger(Func<Settings> settings)
                     continue;
                 }
                 var g = game!.Value;
+                var text = Rotation.Clean(s.Messages[slot]);
+                if (s.Background)
+                {
+                    // straight into the game's window: the keyboard, its language and what's in front don't matter
+                    Set(Phase.Typing);
+                    var started = DateTime.UtcNow;
+                    bool posted = await Task.Run(() => Poster.Type(g.Hwnd, text, s.EnterFirst, () => Game.Alive(g.Hwnd), ct), CancellationToken.None);
+                    ct.ThrowIfCancellationRequested();
+                    if (!posted) { await Task.Delay(150, ct); continue; } // the game closed: the same message goes again
+                    await CountAndWait(s, started, ct);
+                    slot = Rotation.Next(s.Messages, slot);
+                    continue;
+                }
                 if (settle)
                 {
                     settle = false;
@@ -90,7 +104,7 @@ internal sealed class Messenger(Func<Settings> settings)
 
                 var hkl = Keys.LayoutOf(g.Thread);
                 bool caps = Keys.CapsLock;
-                var plan = KeyPlan.Build(Rotation.Clean(s.Messages[slot]), c => Keys.Map(c, hkl, caps), s.EnterFirst);
+                var plan = KeyPlan.Build(text, c => Keys.Map(c, hkl, caps), s.EnterFirst);
                 if (plan.Strokes is not { } strokes)
                 {
                     Missing = plan.Missing;
@@ -101,20 +115,27 @@ internal sealed class Messenger(Func<Settings> settings)
                 }
 
                 Set(Phase.Typing);
+                var start = DateTime.UtcNow;
                 bool done = await Task.Run(() => Typer.Type(strokes, () => Game.StillForeground(g.Hwnd), ct), CancellationToken.None);
                 ct.ThrowIfCancellationRequested();
                 if (!done) { settle = true; continue; } // left the game mid-line: the same message goes again
 
-                Sent++;
+                await CountAndWait(s, start, ct);
                 slot = Rotation.Next(s.Messages, slot);
-                Slot = slot;
-                CountdownStart = DateTime.UtcNow;
-                CountdownEnd = CountdownStart.AddSeconds(s.IntervalSeconds);
-                Set(Phase.Countdown, force: true);
-                while (DateTime.UtcNow < CountdownEnd) await Task.Delay(100, ct);
             }
         }
         catch (OperationCanceledException) { }
+    }
+
+    /// <summary>Counts the message and waits until the next one is due.</summary>
+    private async Task CountAndWait(Settings s, DateTime started, CancellationToken ct)
+    {
+        Sent++;
+        Slot = Rotation.Next(s.Messages, Slot);
+        CountdownStart = DateTime.UtcNow;
+        CountdownEnd = Settings.NextStart(started, CountdownStart, s.IntervalSeconds);
+        Set(Phase.Countdown, force: true);
+        while (DateTime.UtcNow < CountdownEnd) await Task.Delay(50, ct);
     }
 
     private void Set(Phase p, bool force = false)

@@ -5,7 +5,7 @@ namespace MapleMessenger.Core;
 
 internal sealed class Settings
 {
-    public const int MinInterval = 3;
+    public const int MinInterval = 1;
     public const int MaxInterval = 600;
     public static readonly string[] Hotkeys = ["F8", "F9", "F10", "F11", "F12", "Pause"];
 
@@ -14,6 +14,17 @@ internal sealed class Settings
     public string Hotkey { get; set; } = "F9";
     /// <summary>Press Enter before typing, to open the chat box.</summary>
     public bool EnterFirst { get; set; } = true;
+    /// <summary>Send the letters straight to the game's window, so it keeps typing while another window is in front.</summary>
+    public bool Background { get; set; } = true;
+
+    /// <summary>The interval counts from the start of one message to the start of the next,
+    /// so "every 4 seconds" really is every 4 seconds, however long the typing took.</summary>
+    /// <returns>When the next message may start. Never sooner than a short breath after this one ended.</returns>
+    public static DateTime NextStart(DateTime started, DateTime ended, int intervalSeconds) =>
+        new[] { started.AddSeconds(intervalSeconds), ended.AddMilliseconds(MinGapMs) }.Max();
+
+    /// <summary>The least pause between two messages, so the chat box has closed before the next Enter.</summary>
+    public const int MinGapMs = 300;
 
     public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MapleMessenger", "settings.json");

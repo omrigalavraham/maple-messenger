@@ -5,8 +5,8 @@ namespace MapleMessenger.Tests;
 public class SettingsTests
 {
     [Theory]
-    [InlineData(0, 3)]
-    [InlineData(2, 3)]
+    [InlineData(0, 1)]
+    [InlineData(2, 2)]
     [InlineData(10, 10)]
     [InlineData(5000, 600)]
     public void Interval_is_kept_in_range(int given, int expected)
@@ -61,5 +61,29 @@ public class SettingsTests
         File.WriteAllText(path, "{ not json");
         try { Assert.Equal("F9", Settings.Load(path).Hotkey); }
         finally { File.Delete(path); }
+    }
+}
+
+public class PacingTests
+{
+    private static readonly DateTime T0 = new(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public void Interval_counts_from_the_start_of_the_message()
+    {
+        // 4 seconds apart, typing took 3: one second to wait
+        Assert.Equal(T0.AddSeconds(4), Settings.NextStart(T0, T0.AddSeconds(3), 4));
+    }
+
+    [Fact]
+    public void Typing_longer_than_the_interval_still_leaves_a_short_breath()
+    {
+        Assert.Equal(T0.AddSeconds(3).AddMilliseconds(Settings.MinGapMs), Settings.NextStart(T0, T0.AddSeconds(3), 1));
+    }
+
+    [Fact]
+    public void Background_typing_is_on_by_default()
+    {
+        Assert.True(new Settings().Normalize().Background);
     }
 }

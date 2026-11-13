@@ -147,7 +147,11 @@ internal sealed class MainWindow : Window
     private UIElement Options()
     {
         var stack = new StackPanel();
-        stack.Children.Add(OptionRow("כל כמה זמן", "הזמן בין הודעה להודעה", Stepper()));
+        stack.Children.Add(OptionRow("כל כמה זמן", "מתחילת הודעה אחת לתחילת הבאה", Stepper()));
+        stack.Children.Add(Divider());
+        var background = new Switch(_s.Background);
+        background.Toggled += on => { _s.Background = on; SaveSoon(); Render(); };
+        stack.Children.Add(OptionRow("הקלדה ברקע", "ממשיך להקליד במייפל גם כשאתה בחלון אחר. אם לא מופיע כלום בצ'אט, לכבות", background));
         stack.Children.Add(Divider());
         stack.Children.Add(OptionRow("מקש הפעלה", "עובד גם מתוך המשחק", KeyPicker()));
         stack.Children.Add(Divider());
@@ -204,8 +208,7 @@ internal sealed class MainWindow : Window
     private void Step(int dir)
     {
         int n = _s.IntervalSeconds;
-        int step = dir > 0 ? (n < 30 ? 1 : n < 120 ? 5 : 30) : (n <= 30 ? 1 : n <= 120 ? 5 : 30);
-        _s.IntervalSeconds = Math.Clamp(n + dir * step, Settings.MinInterval, Settings.MaxInterval);
+        int step = dir > 0 ? (n < 30 ? 1 : n < 120 ? 5 : 30) : (n <= 30 ? 1 : n <= 120 ? 5 : 30);        _s.IntervalSeconds = Math.Clamp(n + dir * step, Settings.MinInterval, Settings.MaxInterval);
         SaveSoon();
         Render();
     }
@@ -395,7 +398,7 @@ internal sealed class MainWindow : Window
             _cards[i].Show(state, v.Phase == Phase.Countdown ? v.Progress : 0);
         }
 
-        _interval.Text = $"{_s.IntervalSeconds} שניות";
+        _interval.Text = _s.IntervalSeconds == 1 ? "שנייה" : $"{_s.IntervalSeconds} שניות";
         if (_shownKey != _s.Hotkey)
         {
             _shownKey = _s.Hotkey;
@@ -413,7 +416,7 @@ internal sealed class MainWindow : Window
             ? (_registered == null && _source != null ? $"המקש {_s.Hotkey} תפוס בתוכנה אחרת. בחר מקש אחר." : null, Ui.Yellow, false)
             : v.Phase switch
             {
-                Phase.WaitingForGame => ("עבור לחלון של מייפל, וההקלדה תתחיל לבד.", Ui.Muted, false),
+                Phase.WaitingForGame => (_s.Background ? "פתח את מייפל, וההקלדה תתחיל לבד." : "עבור לחלון של מייפל, וההקלדה תתחיל לבד.", Ui.Muted, false),
                 Phase.NeedsAdmin => ("מייפל רץ כמנהל, ולכן Windows לא נותן לתוכנה אחרת להקליד בו. צריך להפעיל אותי מחדש כמנהל.", Ui.Red, true),
                 Phase.WrongLanguage => ($"המקלדת במשחק לא יכולה להקליד את: {missing}\nאם המקלדת בעברית, עבור לאנגלית (Alt+Shift). אם אלה סימנים מיוחדים, מחק אותם.", Ui.Yellow, false),
                 Phase.NoText => ("כתוב לפחות הודעה אחת.", Ui.Yellow, false),
